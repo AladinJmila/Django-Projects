@@ -1,2 +1,2 @@
 # dennis-todo
- follow up a tutorial to build a to do app using Django REST framework
+ follow up a tutorial to build a todo app using Django REST framework
