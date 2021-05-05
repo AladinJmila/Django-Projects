@@ -1,0 +1,5 @@
+{% extends 'base.html' %} {% block content %}
+<h2>List of {{ title }}</h2>
+<h3>{{ question.title }}</h3>
+<p>Created by {{ question.created_by.first_name }}</p>
+{% endblock content %}
