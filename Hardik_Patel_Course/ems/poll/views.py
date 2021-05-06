@@ -6,6 +6,39 @@ from poll.serializers import QuestionSerializer
 from rest_framework.parsers import JSONParser 
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import generics, mixins
+
+class PollListView(generics.GenericAPIView, 
+                  mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  mixins.DestroyModelMixin,):
+
+  serializer_class = QuestionSerializer
+  queryset = Question.objects.all()
+  lookup_field = 'id'
+
+  def get(self, request, id=None):
+    if id:
+      return self.retrieve(request, id)
+    
+    return self.list(request)
+
+  def post(self, request):
+    return self.create(request)
+
+  def perform_create(self, serializer):
+    serializer.save(created_by=self.request.user)
+
+  def put(self, request, id=None):
+    return self.update(request, id)
+
+  def perform_update(self, serializer):
+    serializer.save(created_by=self.request.user)
+
+  def delete(self, request, id=None):
+    return self.destroy(request, id)
 
 class PollAPIView(APIView):
   def get(self, request):
