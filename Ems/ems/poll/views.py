@@ -2,11 +2,38 @@ from django.shortcuts import render
 from django.http import Http404, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from poll.models import *
-from poll.serializers import QuestionSerializer
+from poll.serializers import QuestionSerializer, ChoiceSerializer
 from rest_framework.parsers import JSONParser 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics, mixins
+from rest_framework import viewsets
+from rest_framework.decorators import action
+
+
+class PollViewSet(viewsets.ModelViewSet):
+  serializer_class = QuestionSerializer
+  queryset = Question.objects.all()
+  lookup_field = 'id'
+
+  @action(detail=True, methods=['GET'])
+  def choices(self, request, id=None):
+    question = self.get_object()
+    choices = Choice.objects.filter(question=question)
+    serializer = ChoiceSerializer(choices, many=True)
+    return Response(serializer.data, status=200)
+
+  @action(detail=True, methods=['POST'])
+  def choice(self, request, id=None):
+    question = sefl.get_object()
+    data = request.data
+    data['question'] = question.id
+    serializer = QuestionSerializer(data=data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
 
 class PollListView(generics.GenericAPIView, 
                   mixins.ListModelMixin,
@@ -52,7 +79,7 @@ class PollAPIView(APIView):
     if serializer.is_valid():
       serializer.save()
       return Response(serializer.data, status=201)
-    return Response(serializer.error, status=400)
+    return Response(serializer.errors, status=400)
 
 
 class PollDetailAPIView(APIView):
@@ -60,7 +87,7 @@ class PollDetailAPIView(APIView):
     try:
       return Question.objects.get(id=id)
     except Question.DoesNotEixst:
-      return Response({'error': 'Given question object not found.'}, status=404)
+      return Response({'errors': 'Given question object not found.'}, status=404)
 
   def get(self, request, id=None):
     instance = self.get_object(id)
@@ -74,7 +101,7 @@ class PollDetailAPIView(APIView):
     if serializer.is_valid():
       serializer.save()
       return Response(serializer.data, status=200)
-    return Response(serializer.error, status=400)
+    return Response(serializer.errors, status=400)
 
   def delete(self, request, id=None):
     instance = self.get_object(id)
@@ -95,7 +122,7 @@ def poll(request):
     if serializer.is_valid():
       serializer.save()
       return JsonResponse(serializer.data, status=201) # Created (Resource successfully created)
-    return JsonResponse(serializer.error, status=400) # Bad request
+    return JsonResponse(serializer.errors, status=400) # Bad request
 
 
 @csrf_exempt
@@ -103,7 +130,7 @@ def poll_details(request, id):
   try:
     instance = Question.objects.get(id=id)
   except Question.DoesNotExist:
-    return JsonResponse({'error': 'Given question object not found'},status=404)
+    return JsonResponse({'errors': 'Given question object not found'},status=404)
 
   if request.method == 'GET':
     serializer = QuestionSerializer(instance)
@@ -115,7 +142,7 @@ def poll_details(request, id):
     if serializer.is_valid():
       serializer.save()
       return JsonResponse(serializer.data, status=200) # Resource successfully updated
-    return JsonResponse(serializer.error, status=400) # Bad request
+    return JsonResponse(serializer.errors, status=400) # Bad request
 
   elif request.method == 'DELETE':
     instance.delete()
